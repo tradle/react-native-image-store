@@ -1,10 +1,15 @@
 
 import { ImageStore } from 'react-native'
 
-const promisify = fn => (...args) => new Promise((resolve, reject) => fn(...args, resolve, reject))
+const promisifyFromTwoCallbacks = fn => (...args) => new Promise((resolve, reject) => fn(...args, resolve, reject))
+const wrapper = {
+  hasImageForTag: imageTag => new Promise(resolve => {
+    // normalize boolean
+    return ImageStore.hasImageForTag(imageTag, result => resolve(!!result))
+  }),
+  getBase64ForTag: promisifyFromTwoCallbacks(ImageStore.getBase64ForTag.bind(ImageStore)),
+  addImageFromBase64: promisifyFromTwoCallbacks(ImageStore.addImageFromBase64.bind(ImageStore)),
+  removeImageForTag: async uri => ImageStore.removeImageForTag(uri),
+}
 
-const promisified = Object
-  .keys(RNImageStore)
-  .reduce((original, key) => promisify(original[key].bind(original)))
-
-export default promisified
+export default wrapper
