@@ -123,7 +123,7 @@ public class ImageStoreModule extends ReactContextBaseJavaModule implements Java
   /**
    * Check if an image is present in the cache
    *
-   * @param imageTag the uri to the tmp file
+   * @param options "imageTag" (uri to the tmp file) and later other options
    * @param promise to be resolved with the boolean result
    */
   @ReactMethod
@@ -136,7 +136,7 @@ public class ImageStoreModule extends ReactContextBaseJavaModule implements Java
   /**
    * Remove an image from the cache
    *
-   * @param imageTag the uri to the tmp file
+   * @param options "imageTag" (uri to the tmp file) and later other options
    * @param promise
    */
   @ReactMethod
@@ -241,6 +241,14 @@ public class ImageStoreModule extends ReactContextBaseJavaModule implements Java
     Uri uri = Uri.fromFile(new File(path));
     new AddImageFromPath(getReactApplicationContext(), uri, mimeType, promise)
             .executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+  }
+
+  public static Uri storeImageBytes(Context context, byte[] imageBytes) throws IOException {
+    return ImageStoreUtils.createTempFileForImageBytes(context, imageBytes);
+  }
+
+  public static Uri storeImageBytes(Context context, byte[] imageBytes, String mimeType) throws IOException {
+    return ImageStoreUtils.createTempFileForImageBytes(context, imageBytes, mimeType);
   }
 
   public static Uri storeImageAtUri(Context context, Uri uri, String mimeType) throws IOException {

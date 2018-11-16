@@ -4,13 +4,13 @@ import android.content.ContentResolver;
 import android.content.Context;
 import android.database.Cursor;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.provider.MediaStore;
 import android.text.TextUtils;
 import android.util.Base64;
 import android.util.Base64OutputStream;
 
+import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
 import java.io.File;
@@ -64,19 +64,35 @@ public class ImageStoreUtils {
     }
   }
 
-  public static void writeImageDataToFile(ImageData imageData, File tempFile)
-          throws IOException {
-    byte[] imageBytes = imageData.bytes;
-    String mimeType = imageData.mimeType;
-    BitmapFactory.Options options = new BitmapFactory.Options();
-    options.outMimeType = mimeType;
-    Bitmap bitmap = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.length, options);
-    writeCompressedBitmapToFile(bitmap, mimeType, tempFile);
+  public static void writeBytesToFile(byte[] bytes, File tempFile) throws IOException {
+    FileOutputStream fos = new FileOutputStream(tempFile);
+    BufferedOutputStream buf = new BufferedOutputStream(fos);
+    try {
+      buf.write(bytes);
+    } finally {
+      if (fos != null) {
+        closeQuietly(fos);
+      }
+
+      if (buf != null) {
+        closeQuietly(buf);
+      }
+    }
   }
+
+//  public static void writeImageDataToFile(ImageData imageData, File tempFile)
+//          throws IOException {
+//    byte[] imageBytes = imageData.bytes;
+//    String mimeType = imageData.mimeType;
+//    BitmapFactory.Options options = new BitmapFactory.Options();
+//    options.outMimeType = mimeType;
+//    Bitmap bitmap = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.length, options);
+//    writeCompressedBitmapToFile(bitmap, mimeType, tempFile);
+//  }
 
   // https://en.wikipedia.org/wiki/List_of_file_signatures
   public static String getMimeTypeFromImageBytes(byte[] image) {
-    int firstByte = (int)image[0];
+    int firstByte = image[0] & 0xFF;
     switch (firstByte) {
       case 255:
         return "image/jpeg";
@@ -123,7 +139,7 @@ public class ImageStoreUtils {
   private static Uri createTempFileForImageData(Context context, ImageData imageData)
           throws IOException {
     File tempFile = createTempFile(context, imageData.mimeType);
-    writeImageDataToFile(imageData, tempFile);
+    writeBytesToFile(imageData.bytes, tempFile);
     return Uri.fromFile(tempFile);
   }
 
@@ -142,6 +158,11 @@ public class ImageStoreUtils {
   public static Uri createTempFileForImageBytes(Context context, byte[] imageBytes)
           throws IOException {
     String mimeType = getMimeTypeFromImageBytes(imageBytes);
+    return createTempFileForImageBytes(context, imageBytes, mimeType);
+  }
+
+  public static Uri createTempFileForImageBytes(Context context, byte[] imageBytes, String mimeType)
+          throws IOException {
     ImageData imageData = new ImageData(imageBytes, mimeType);
     return createTempFileForImageData(context, imageData);
   }
@@ -188,14 +209,14 @@ public class ImageStoreUtils {
     }
   }
 
-  /**
-   * Create a temporary file in the cache directory on either internal or external storage,
-   * whichever is available and has more free space.
-   *
-   * @param mimeType the MIME type of the file to create (image/*)
-   */
-  public static File createTempFile(Context context, @Nullable String mimeType)
-          throws IOException {
+  public static Uri getUriFromCachedFilename(Context context, String filename) throws IOException {
+    File cacheDir = getCacheDir(context);
+    Uri baseUri = Uri.fromFile(cacheDir);
+    return Uri.withAppendedPath(baseUri, filename);
+  }
+
+  public static File getCacheDir(Context context)
+      throws IOException {
     File externalCacheDir = context.getExternalCacheDir();
     File internalCacheDir = context.getCacheDir();
     File cacheDir;
@@ -211,6 +232,19 @@ public class ImageStoreUtils {
       cacheDir = externalCacheDir.getFreeSpace() > internalCacheDir.getFreeSpace() ?
               externalCacheDir : internalCacheDir;
     }
+
+    return cacheDir;
+  }
+
+  /**
+   * Create a temporary file in the cache directory on either internal or external storage,
+   * whichever is available and has more free space.
+   *
+   * @param mimeType the MIME type of the file to create (image/*)
+   */
+  public static File createTempFile(Context context, @Nullable String mimeType)
+          throws IOException {
+    File cacheDir = getCacheDir(context);
     return File.createTempFile(TEMP_FILE_PREFIX, getFileExtensionForType(mimeType), cacheDir);
   }
 
