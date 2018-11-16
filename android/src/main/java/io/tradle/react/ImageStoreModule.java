@@ -1,29 +1,29 @@
 
 package io.tradle.react;
 
-import android.content.ContentResolver;
 import android.content.Context;
 import android.net.Uri;
 import android.os.AsyncTask;
 
-import com.facebook.react.bridge.Callback;
 import com.facebook.react.bridge.GuardedAsyncTask;
+import com.facebook.react.bridge.JavaScriptModule;
+import com.facebook.react.bridge.Promise;
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FilenameFilter;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.Collections;
 import java.util.Map;
 
-public class ImageStoreModule extends ReactContextBaseJavaModule {
+public class ImageStoreModule extends ReactContextBaseJavaModule implements JavaScriptModule {
 
   private final ReactApplicationContext reactContext;
+  private static final String ERROR_CODE_IO = "io_error";
+  private static final String ERROR_CODE_FILE_NOT_FOUND = "file_not_found";
 
   public ImageStoreModule(ReactApplicationContext reactContext) {
     super(reactContext);
@@ -33,7 +33,7 @@ public class ImageStoreModule extends ReactContextBaseJavaModule {
 
   @Override
   public String getName() {
-    return "ImageStore";
+    return "RNImageStore";
   }
 
   @Override
@@ -88,126 +88,136 @@ public class ImageStoreModule extends ReactContextBaseJavaModule {
    * Calculate the base64 representation for an image. The "tag" comes from iOS naming.
    *
    * @param uri the URI of the image, file:// or content://
-   * @param success callback to be invoked with the base64 string as the only argument
-   * @param error callback to be invoked on error (e.g. file not found, not readable etc.)
+   * @param promise to be resolved with the base64 string as the only argument
    */
   @ReactMethod
-  public void getBase64ForTag(String uri, Callback success, Callback error) {
-    new GetBase64Task(getReactApplicationContext(), uri, success, error)
+  public void getBase64ForTag(String uri, Promise promise) {
+    new GetBase64Task(getReactApplicationContext(), uri, promise)
             .executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
   }
 
   private class GetBase64Task extends GuardedAsyncTask<Void, Void> {
     private final String mUri;
-    private final Callback mSuccess;
-    private final Callback mError;
+    private final Promise mPromise;
 
     private GetBase64Task(
             ReactContext reactContext,
             String uri,
-            Callback success,
-            Callback error) {
+            Promise promise) {
       super(reactContext);
       mUri = uri;
-      mSuccess = success;
-      mError = error;
+      mPromise = promise;
     }
 
     @Override
     protected void doInBackgroundGuarded(Void... params) {
       try {
-        ContentResolver contentResolver = getReactApplicationContext().getContentResolver();
-        Uri uri = Uri.parse(mUri);
-        InputStream is = contentResolver.openInputStream(uri);
-        try {
-          mSuccess.invoke(ImageStoreUtils.convertInputStreamToBase64OutputStream(is));
-        } catch (IOException e) {
-          mError.invoke(e.getMessage());
-        } finally {
-          ImageStoreUtils.closeQuietly(is);
-        }
-      } catch (FileNotFoundException e) {
-        mError.invoke(e.getMessage());
+        mPromise.resolve(ImageStoreUtils.getImageBase64(getReactApplicationContext(), mUri));
+      } catch (IOException e) {
+        mPromise.reject(ERROR_CODE_IO, e.getMessage());
       }
     }
+  }
+
+  /**
+   * Check if an image is present in the cache
+   *
+   * @param imageTag the uri to the tmp file
+   * @param promise to be resolved with the boolean result
+   */
+  @ReactMethod
+  public void hasImageForTag(String imageTag, Promise promise) {
+    Uri uri = Uri.parse(imageTag);
+    File file = new File(uri.getPath());
+    promise.resolve(file.exists());
+  }
+
+  /**
+   * Remove an image from the cache
+   *
+   * @param imageTag the uri to the tmp file
+   * @param promise
+   */
+  @ReactMethod
+  public void removeImageForTag(String imageTag, Promise promise) {
+    Uri uri = Uri.parse(imageTag);
+    File file = new File(uri.getPath());
+    if (file.exists()) {
+      file.delete();
+    }
+
+    promise.resolve(null);
   }
 
   /**
    * Add image to cache from base64 string
    *
    * @param base64 the base64 string
-   * @param success callback to be invoked with the base64 string as the only argument
-   * @param error callback to be invoked on error (e.g. file not found, not readable etc.)
+   * @param promise to be resolved with the base64 string as the only argument
    */
   @ReactMethod
-  public void addImageFromBase64(String base64, Callback success, Callback error) {
-    new AddImageFromBase64Task(getReactApplicationContext(), base64, success, error)
+  public void addImageFromBase64(String base64, Promise promise) {
+    new AddImageFromBase64Task(getReactApplicationContext(), base64, promise)
             .executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
   }
 
   private class AddImageFromBase64Task extends GuardedAsyncTask<Void, Void> {
     private final String mBase64;
-    private final Callback mSuccess;
-    private final Callback mError;
+    private final Promise mPromise;
 
     private AddImageFromBase64Task(
             ReactContext reactContext,
             String base64,
-            Callback success,
-            Callback error) {
+            Promise promise) {
       super(reactContext);
       mBase64 = base64;
-      mSuccess = success;
-      mError = error;
+      mPromise = promise;
     }
 
     @Override
     protected void doInBackgroundGuarded(Void... params) {
       try {
-        String uri  = ImageStoreUtils.createTempFileForBase64Image(getReactApplicationContext(), mBase64);
-        mSuccess.invoke(uri);
+        Uri uri  = ImageStoreUtils.createTempFileForBase64Image(getReactApplicationContext(), mBase64);
+        mPromise.resolve(uri.toString());
       } catch (IOException e) {
-        mError.invoke(e.getMessage());
+        mPromise.reject(ERROR_CODE_IO, e.getMessage());
       }
     }
   }
 
-  /**
-   * Add image to cache from raw image bytes
-   *
-   * @param bytes image bytes
-   * @param success callback to be invoked with the base64 string as the only argument
-   * @param error callback to be invoked on error (e.g. file not found, not readable etc.)
-   */
-  @ReactMethod
-  public void addImageFromBytes(byte[] bytes, Callback success, Callback error) {
-    new AddImageFromBytesTask(getReactApplicationContext(), bytes, success, error)
+//  /**
+//   * Add image to cache from raw image bytes
+//   *
+//   * @param bytes image bytes
+//   * @param promise to be resolved with the base64 string as the only argument
+//   */
+//  @ReactMethod
+
+  public void addImageFromBytes(byte[] bytes, Promise promise) {
+    new AddImageFromBytesTask(getReactApplicationContext(), bytes, promise)
             .executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
   }
 
   private class AddImageFromBytesTask extends GuardedAsyncTask<Void, Void> {
     private final byte[] mBytes;
-    private final Callback mSuccess;
-    private final Callback mError;
+    private final Promise mPromise;
 
     private AddImageFromBytesTask(
             ReactContext reactContext,
             byte[] bytes,
-            Callback success,
-            Callback error) {
+            Promise promise) {
       super(reactContext);
       mBytes = bytes;
-      mSuccess = success;
-      mError = error;
+      mPromise = promise;
     }
 
     @Override
     protected void doInBackgroundGuarded(Void... params) {
       try {
-        String uri  = ImageStoreUtils.createTempFileForImageBytes(getReactApplicationContext(), mBytes);
-        mSuccess.invoke(uri);
+        Uri uri  = ImageStoreUtils.createTempFileForImageBytes(getReactApplicationContext(), mBytes);
+        mPromise.resolve(uri.toString());
       } catch (IOException e) {
-        mError.invoke(e.getMessage());
+        mPromise.reject(ERROR_CODE_IO, e.getMessage());
       }
     }
   }
@@ -217,41 +227,49 @@ public class ImageStoreModule extends ReactContextBaseJavaModule {
    *
    * @param path image path
    * @param mimeType image mime type
-   * @param success callback to be invoked with the base64 string as the only argument
-   * @param error callback to be invoked on error (e.g. file not found, not readable etc.)
+   * @param promise to be resolved with the base64 string as the only argument
    */
   @ReactMethod
-  public void addImageFromPath(String path, String mimeType, Callback success, Callback error) {
-    new AddImageFromPath(getReactApplicationContext(), path, mimeType, success, error)
+  public void addImageFromPath(String path, String mimeType, Promise promise) {
+    new AddImageFromPath(getReactApplicationContext(), path, mimeType, promise)
             .executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+  }
+
+  public static Uri storeImage(Context context, Uri uri, String mimeType) throws IOException {
+    return ImageStoreUtils.copyFileToTempFile(context, uri, mimeType);
+  }
+
+  public static Uri storeImage(Context context, String path, String mimeType) throws IOException {
+    return ImageStoreUtils.copyFileToTempFile(context, path, mimeType);
+  }
+
+  public static byte[] getImageDataForTag(Context context, String uri) throws IOException {
+    return ImageStoreUtils.getImageData(context, uri);
   }
 
   private class AddImageFromPath extends GuardedAsyncTask<Void, Void> {
     private final String mPath;
     private final String mMimeType;
-    private final Callback mSuccess;
-    private final Callback mError;
+    private final Promise mPromise;
 
     private AddImageFromPath(
             ReactContext reactContext,
             String path,
             String mimeType,
-            Callback success,
-            Callback error) {
+            Promise promise) {
       super(reactContext);
       mPath = path;
       mMimeType = mimeType;
-      mSuccess = success;
-      mError = error;
+      mPromise = promise;
     }
 
     @Override
     protected void doInBackgroundGuarded(Void... params) {
       try {
-        String uri  = ImageStoreUtils.copyFileToTempFile(getReactApplicationContext(),  mPath, mMimeType);
-        mSuccess.invoke(uri);
+        Uri uri  = ImageStoreUtils.copyFileToTempFile(getReactApplicationContext(),  mPath, mMimeType);
+        mPromise.resolve(uri.toString());
       } catch (IOException e) {
-        mError.invoke(e.getMessage());
+        mPromise.reject(ERROR_CODE_IO, e.getMessage());
       }
     }
   }

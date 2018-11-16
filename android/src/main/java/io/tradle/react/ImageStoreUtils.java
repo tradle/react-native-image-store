@@ -1,5 +1,6 @@
 package io.tradle.react;
 
+import android.content.ContentResolver;
 import android.content.Context;
 import android.database.Cursor;
 import android.graphics.Bitmap;
@@ -107,35 +108,35 @@ public class ImageStoreUtils {
    *
    * @param imageData image data to use to create file
    */
-  private static String createTempFileForImageData(Context context, ImageData imageData)
+  private static Uri createTempFileForImageData(Context context, ImageData imageData)
           throws IOException {
     File tempFile = createTempFile(context, imageData.mimeType);
     writeImageDataToFile(imageData, tempFile);
-    return Uri.fromFile(tempFile).toString();
+    return Uri.fromFile(tempFile);
   }
 
-  public static String createTempFileForBase64Image(Context context, String base64)
+  public static Uri createTempFileForBase64Image(Context context, String base64)
           throws IOException {
     ImageData imageData = parseImageBase64(base64);
     return createTempFileForImageData(context, imageData);
   }
 
-  public static String createTempFileForImageBytes(Context context, byte[] imageBytes)
+  public static Uri createTempFileForImageBytes(Context context, byte[] imageBytes)
           throws IOException {
     String mimeType = getMimeTypeFromImageBytes(imageBytes);
     ImageData imageData = new ImageData(imageBytes, mimeType);
     return createTempFileForImageData(context, imageData);
   }
 
-  public static String copyFileToTempFile(Context context, Uri imageUri, String mimeType)
+  public static Uri copyFileToTempFile(Context context, Uri imageUri, String mimeType)
           throws IOException {
     File source = getFileFromUri(context, imageUri);
     File dest = createTempFile(context, mimeType);
     copyFile(source, dest);
-    return dest.getAbsolutePath();
+    return Uri.fromFile(dest);
   }
 
-  public static String copyFileToTempFile(Context context, String imageUriString, String mimeType)
+  public static Uri copyFileToTempFile(Context context, String imageUriString, String mimeType)
           throws IOException {
     return copyFileToTempFile(context, Uri.parse(imageUriString), mimeType);
   }
@@ -206,6 +207,43 @@ public class ImageStoreUtils {
     }
 
     return null;
+  }
+
+  public static byte[] getImageData(Context context, String uriString) throws IOException {
+    Uri uri = Uri.parse(uriString);
+    ContentResolver contentResolver = context.getContentResolver();
+    InputStream is = contentResolver.openInputStream(uri);
+    try {
+      return convertInputStreamToBytes(is);
+    } finally {
+      closeQuietly(is);
+    }
+  }
+
+  public static String getImageBase64(Context context, String uriString) throws IOException {
+    Uri uri = Uri.parse(uriString);
+    ContentResolver contentResolver = context.getContentResolver();
+    InputStream is = contentResolver.openInputStream(uri);
+    try {
+      return convertInputStreamToBase64OutputStream(is).toString();
+    } finally {
+      closeQuietly(is);
+    }
+  }
+
+//  public static InputStream getInputStream(Context context, String uri) throws IOException {
+//    return context.getContentResolver().openInputStream(Uri.parse(uri));
+//  }
+
+  public static byte[] convertInputStreamToBytes(InputStream is) throws IOException {
+    ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+    int nRead;
+    byte[] data = new byte[BUFFER_SIZE];
+    while ((nRead = is.read(data, 0, data.length)) != -1) {
+      buffer.write(data, 0, nRead);
+    }
+
+    return buffer.toByteArray();
   }
 
   public static String convertInputStreamToBase64OutputStream(InputStream is) throws IOException {
