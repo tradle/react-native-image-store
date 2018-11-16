@@ -127,8 +127,8 @@ public class ImageStoreModule extends ReactContextBaseJavaModule implements Java
    * @param promise to be resolved with the boolean result
    */
   @ReactMethod
-  public void hasImageForTag(String imageTag, Promise promise) {
-    Uri uri = Uri.parse(imageTag);
+  public void hasImageForTag(ReadableMap options, Promise promise) {
+    Uri uri = Uri.parse(options.getString("imageTag"));
     File file = new File(uri.getPath());
     promise.resolve(file.exists());
   }
@@ -140,8 +140,8 @@ public class ImageStoreModule extends ReactContextBaseJavaModule implements Java
    * @param promise
    */
   @ReactMethod
-  public void removeImageForTag(String imageTag, Promise promise) {
-    Uri uri = Uri.parse(imageTag);
+  public void removeImageForTag(ReadableMap options, Promise promise) {
+    Uri uri = Uri.parse(options.getString("imageTag"));
     File file = new File(uri.getPath());
     if (file.exists()) {
       file.delete();
