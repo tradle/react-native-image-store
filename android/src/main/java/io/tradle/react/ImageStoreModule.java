@@ -12,6 +12,7 @@ import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
+import com.facebook.react.bridge.ReadableMap;
 
 import java.io.File;
 import java.io.FilenameFilter;
@@ -152,32 +153,37 @@ public class ImageStoreModule extends ReactContextBaseJavaModule implements Java
   /**
    * Add image to cache from base64 string
    *
-   * @param base64 the base64 string
+   * @param options "base64" and optionally "mimeType"
    * @param promise to be resolved with the base64 string as the only argument
    */
   @ReactMethod
-  public void addImageFromBase64(String base64, Promise promise) {
-    new AddImageFromBase64Task(getReactApplicationContext(), base64, promise)
+  public void addImageFromBase64(ReadableMap options, Promise promise) {
+    String base64 = options.getString("base64");
+    String mimeType = options.hasKey("mimeType") ? options.getString("mimeType") : null;
+    new AddImageFromBase64Task(getReactApplicationContext(), base64, mimeType, promise)
             .executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
   }
 
   private class AddImageFromBase64Task extends GuardedAsyncTask<Void, Void> {
     private final String mBase64;
+    private final String mMimeType;
     private final Promise mPromise;
 
     private AddImageFromBase64Task(
             ReactContext reactContext,
             String base64,
+            String mimeType,
             Promise promise) {
       super(reactContext);
       mBase64 = base64;
+      mMimeType = mimeType;
       mPromise = promise;
     }
 
     @Override
     protected void doInBackgroundGuarded(Void... params) {
       try {
-        Uri uri  = ImageStoreUtils.createTempFileForBase64Image(getReactApplicationContext(), mBase64);
+        Uri uri  = ImageStoreUtils.createTempFileForBase64Image(getReactApplicationContext(), mBase64, mMimeType);
         mPromise.resolve(uri.toString());
       } catch (IOException e) {
         mPromise.reject(ERROR_CODE_IO, e.getMessage());
@@ -225,22 +231,24 @@ public class ImageStoreModule extends ReactContextBaseJavaModule implements Java
   /**
    * Add image to cache from raw image bytes
    *
-   * @param path image path
-   * @param mimeType image mime type
+   * @param options path and mimeType
    * @param promise to be resolved with the base64 string as the only argument
    */
   @ReactMethod
-  public void addImageFromPath(String path, String mimeType, Promise promise) {
-    new AddImageFromPath(getReactApplicationContext(), path, mimeType, promise)
+  public void addImageFromPath(ReadableMap options, Promise promise) {
+    String path = options.getString("path");
+    String mimeType = options.hasKey("mimeType") ? options.getString("mimeType") : ImageStoreUtils.getMimeTypeFromPath(path);
+    Uri uri = Uri.fromFile(new File(path));
+    new AddImageFromPath(getReactApplicationContext(), uri, mimeType, promise)
             .executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
   }
 
-  public static Uri storeImage(Context context, Uri uri, String mimeType) throws IOException {
+  public static Uri storeImageAtUri(Context context, Uri uri, String mimeType) throws IOException {
     return ImageStoreUtils.copyFileToTempFile(context, uri, mimeType);
   }
 
-  public static Uri storeImage(Context context, String path, String mimeType) throws IOException {
-    return ImageStoreUtils.copyFileToTempFile(context, path, mimeType);
+  public static Uri storeImageAtUri(Context context, Uri uri) throws IOException {
+    return ImageStoreUtils.copyFileToTempFile(context, uri);
   }
 
   public static byte[] getImageDataForTag(Context context, String uri) throws IOException {
@@ -248,17 +256,17 @@ public class ImageStoreModule extends ReactContextBaseJavaModule implements Java
   }
 
   private class AddImageFromPath extends GuardedAsyncTask<Void, Void> {
-    private final String mPath;
+    private final Uri mUri;
     private final String mMimeType;
     private final Promise mPromise;
 
     private AddImageFromPath(
             ReactContext reactContext,
-            String path,
+            Uri uri,
             String mimeType,
             Promise promise) {
       super(reactContext);
-      mPath = path;
+      mUri = uri;
       mMimeType = mimeType;
       mPromise = promise;
     }
@@ -266,7 +274,7 @@ public class ImageStoreModule extends ReactContextBaseJavaModule implements Java
     @Override
     protected void doInBackgroundGuarded(Void... params) {
       try {
-        Uri uri  = ImageStoreUtils.copyFileToTempFile(getReactApplicationContext(),  mPath, mMimeType);
+        Uri uri  = ImageStoreUtils.copyFileToTempFile(getReactApplicationContext(), mUri, mMimeType);
         mPromise.resolve(uri.toString());
       } catch (IOException e) {
         mPromise.reject(ERROR_CODE_IO, e.getMessage());

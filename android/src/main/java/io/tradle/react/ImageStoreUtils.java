@@ -19,6 +19,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.URLConnection;
 import java.nio.channels.FileChannel;
 
 import javax.annotation.Nullable;
@@ -97,9 +98,20 @@ public class ImageStoreUtils {
     }
   }
 
+  public static String getMimeTypeFromPath(String path) {
+    return URLConnection.guessContentTypeFromName(new File(path).getName());
+  }
+
   public static ImageData parseImageBase64(String imageBase64) {
+    return parseImageBase64(imageBase64, null);
+  }
+
+  public static ImageData parseImageBase64(String imageBase64, @Nullable String mimeType) {
     byte[] imageBytes = Base64.decode(imageBase64, Base64.DEFAULT);
-    String mimeType = getMimeTypeFromImageBytes(imageBytes);
+    if (mimeType == null) {
+      mimeType = getMimeTypeFromImageBytes(imageBytes);
+    }
+
     return new ImageData(imageBytes, mimeType);
   }
 
@@ -121,6 +133,12 @@ public class ImageStoreUtils {
     return createTempFileForImageData(context, imageData);
   }
 
+  public static Uri createTempFileForBase64Image(Context context, String base64, String mimeType)
+          throws IOException {
+    ImageData imageData = parseImageBase64(base64, mimeType);
+    return createTempFileForImageData(context, imageData);
+  }
+
   public static Uri createTempFileForImageBytes(Context context, byte[] imageBytes)
           throws IOException {
     String mimeType = getMimeTypeFromImageBytes(imageBytes);
@@ -139,6 +157,16 @@ public class ImageStoreUtils {
   public static Uri copyFileToTempFile(Context context, String imageUriString, String mimeType)
           throws IOException {
     return copyFileToTempFile(context, Uri.parse(imageUriString), mimeType);
+  }
+
+  public static Uri copyFileToTempFile(Context context, Uri imageUri)
+          throws IOException {
+    return copyFileToTempFile(context, imageUri, getMimeTypeFromPath(imageUri.getPath()));
+  }
+
+  public static Uri copyFileToTempFile(Context context, String imageUriString)
+          throws IOException {
+    return copyFileToTempFile(context, Uri.parse(imageUriString));
   }
 
   public static void copyFile(File sourceFile, File destFile)
