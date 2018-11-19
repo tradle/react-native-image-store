@@ -1,7 +1,7 @@
 
 import { NativeModules } from 'react-native'
-import { wrapImageStore } from './wrap'
+import { wrapAndroidImageStore } from './wrap'
 
 const { RNImageStore } = NativeModules
 
-export default wrapImageStore(RNImageStore)
+export default wrapAndroidImageStore(RNImageStore)

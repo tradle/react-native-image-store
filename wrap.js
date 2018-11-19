@@ -11,8 +11,11 @@ const methodToOpt = {
   addImageFromBase64: 'base64',
 }
 
-const normalizeProp = {
-  addImageFromBase64: base64 => base64.replace(/^data:.*?base64,/, ''),
+const normalizeOpts = {
+  addImageFromBase64: ({ base64, ...rest }) => ({
+    base64: base64.replace(/^data:.*?base64,/, ''),
+    ...rest,
+  }),
 }
 
 const createTransformer = transform => obj => {
@@ -31,10 +34,11 @@ export const withUnwrappedOpts = createTransformer((obj, method, value) => {
   }
 })
 
-export const withNormalizedProp = createTransformer((obj, method, fn) => {
-  if (method in normalizeProp) {
-    return prop => fn(normalizeProp[method](prop))
+export const withNormalizedOpts = createTransformer((obj, method, fn) => {
+  if (method in normalizeOpts) {
+    return opts => fn(normalizeOpts[method](opts))
   }
 })
 
-export const wrapImageStore = imageStore => withUnwrappedOpts(withNormalizedProp(imageStore))
+export const wrapIOSImageStore = imageStore => withNormalizedOpts(withUnwrappedOpts(imageStore))
+export const wrapAndroidImageStore = imageStore => withNormalizedOpts(imageStore)

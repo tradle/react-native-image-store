@@ -94,8 +94,8 @@ public class ImageStoreModule extends ReactContextBaseJavaModule implements Java
    * @param promise to be resolved with the base64 string as the only argument
    */
   @ReactMethod
-  public void getBase64ForTag(String uri, Promise promise) {
-    new GetBase64Task(getReactApplicationContext(), uri, promise)
+  public void getBase64ForTag(ReadableMap options, Promise promise) {
+    new GetBase64Task(getReactApplicationContext(), options.getString("imageTag"), promise)
             .executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
   }
 
