@@ -217,23 +217,24 @@ public class ImageStoreUtils {
 
   public static File getCacheDir(Context context)
       throws IOException {
-    File externalCacheDir = context.getExternalCacheDir();
-    File internalCacheDir = context.getCacheDir();
-    File cacheDir;
-    if (externalCacheDir == null && internalCacheDir == null) {
-      throw new IOException("No cache directory available");
-    }
-    if (externalCacheDir == null) {
-      cacheDir = internalCacheDir;
-    }
-    else if (internalCacheDir == null) {
-      cacheDir = externalCacheDir;
-    } else {
-      cacheDir = externalCacheDir.getFreeSpace() > internalCacheDir.getFreeSpace() ?
-              externalCacheDir : internalCacheDir;
-    }
-
-    return cacheDir;
+  	return context.getCacheDir();
+//    File externalCacheDir = context.getExternalCacheDir();
+//    File internalCacheDir = context.getCacheDir();
+//    File cacheDir;
+//    if (externalCacheDir == null && internalCacheDir == null) {
+//      throw new IOException("No cache directory available");
+//    }
+//    if (externalCacheDir == null) {
+//      cacheDir = internalCacheDir;
+//    }
+//    else if (internalCacheDir == null) {
+//      cacheDir = externalCacheDir;
+//    } else {
+//      cacheDir = externalCacheDir.getFreeSpace() > internalCacheDir.getFreeSpace() ?
+//              externalCacheDir : internalCacheDir;
+//    }
+//
+//    return cacheDir;
   }
 
   /**
