@@ -1,9 +1,9 @@
 
 import { ImageStore } from 'react-native'
-import { withUnwrappedOpts } from './wrap'
+import { wrapImageStore } from './wrap'
 
 const promisifyFromTwoCallbacks = fn => (...args) => new Promise((resolve, reject) => fn(...args, resolve, reject))
-const wrapper = withUnwrappedOpts({
+const wrapper = wrapImageStore({
   hasImageForTag: imageTag => new Promise(resolve => {
     // normalize boolean
     return ImageStore.hasImageForTag(imageTag, result => resolve(!!result))

@@ -4,4 +4,4 @@ import { wrapImageStore } from './wrap'
 
 const { RNImageStore } = NativeModules
 
-export default RNImageStore
+export default wrapImageStore(RNImageStore)
