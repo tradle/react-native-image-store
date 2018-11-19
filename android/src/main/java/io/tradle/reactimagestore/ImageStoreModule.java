@@ -261,7 +261,7 @@ public class ImageStoreModule extends ReactContextBaseJavaModule implements Java
     return ImageStoreUtils.copyFileToTempFile(context, uri);
   }
 
-  public static byte[] getImageDataForTag(Context context, String uri) throws IOException {
+  public static ImageData getImageDataForTag(Context context, String uri) throws IOException {
     return ImageStoreUtils.getImageData(context, uri);
   }
 

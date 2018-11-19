@@ -272,12 +272,13 @@ public class ImageStoreUtils {
     return null;
   }
 
-  public static byte[] getImageData(Context context, String uriString) throws IOException {
+  public static ImageData getImageData(Context context, String uriString) throws IOException {
     Uri uri = Uri.parse(uriString);
     ContentResolver contentResolver = context.getContentResolver();
     InputStream is = contentResolver.openInputStream(uri);
     try {
-      return convertInputStreamToBytes(is);
+      byte[] bytes = convertInputStreamToBytes(is);
+      return new ImageData(bytes, getMimeTypeFromImageBytes(bytes));
     } finally {
       closeQuietly(is);
     }
