@@ -1,5 +1,5 @@
 
-package io.tradle.react;
+package io.tradle.reactimagestore;
 
 import android.content.Context;
 import android.net.Uri;
@@ -19,6 +19,8 @@ import java.io.FilenameFilter;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
+
+import io.tradle.reactimagestore.ImageStoreUtils;
 
 public class ImageStoreModule extends ReactContextBaseJavaModule implements JavaScriptModule {
 

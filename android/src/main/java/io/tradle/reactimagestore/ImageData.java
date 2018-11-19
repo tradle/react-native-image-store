@@ -1,4 +1,4 @@
-package io.tradle.react;
+package io.tradle.reactimagestore;
 
 public class ImageData {
   public final byte[] bytes;

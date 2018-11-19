@@ -1,4 +1,4 @@
-package io.tradle.react;
+package io.tradle.reactimagestore;
 
 import android.content.ContentResolver;
 import android.content.Context;
