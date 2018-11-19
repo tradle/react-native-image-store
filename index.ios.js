@@ -1,9 +1,9 @@
 
 import { ImageStore } from 'react-native'
-import { wrapIosImageStore } from './wrap'
+import { wrapIOSImageStore } from './wrap'
 
 const promisifyFromTwoCallbacks = fn => (...args) => new Promise((resolve, reject) => fn(...args, resolve, reject))
-const wrapper = wrapIosImageStore({
+const wrapper = wrapIOSImageStore({
   hasImageForTag: imageTag => new Promise(resolve => {
     // normalize boolean
     return ImageStore.hasImageForTag(imageTag, result => resolve(!!result))
