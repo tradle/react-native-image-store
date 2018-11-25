@@ -52,11 +52,11 @@ public class ImageStoreUtils {
     return Bitmap.CompressFormat.JPEG;
   }
 
-  public static void writeCompressedBitmapToFile(Bitmap cropped, String mimeType, File tempFile)
+  public static void compressBitmapToFile(Bitmap cropped, String mimeType, File tempFile, int compressionQuality)
           throws IOException {
     OutputStream out = new FileOutputStream(tempFile);
     try {
-      cropped.compress(getCompressFormatForType(mimeType), COMPRESS_QUALITY, out);
+      cropped.compress(getCompressFormatForType(mimeType), compressionQuality, out);
     } finally {
       if (out != null) {
         out.close();
@@ -79,16 +79,6 @@ public class ImageStoreUtils {
       }
     }
   }
-
-//  public static void writeImageDataToFile(ImageData imageData, File tempFile)
-//          throws IOException {
-//    byte[] imageBytes = imageData.bytes;
-//    String mimeType = imageData.mimeType;
-//    BitmapFactory.Options options = new BitmapFactory.Options();
-//    options.outMimeType = mimeType;
-//    Bitmap bitmap = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.length, options);
-//    writeCompressedBitmapToFile(bitmap, mimeType, tempFile);
-//  }
 
   // https://en.wikipedia.org/wiki/List_of_file_signatures
   public static String getMimeTypeFromImageBytes(byte[] image) {
@@ -165,6 +155,13 @@ public class ImageStoreUtils {
           throws IOException {
     ImageData imageData = new ImageData(imageBytes, mimeType);
     return createTempFileForImageData(context, imageData);
+  }
+
+  public static Uri createTempFileForBitmap(Context context, Bitmap bitmap, String mimeType, int compressionQuality)
+          throws IOException {
+    File dest = createTempFile(context, mimeType);
+    compressBitmapToFile(bitmap, mimeType, dest, compressionQuality);
+    return Uri.fromFile(dest);
   }
 
   public static Uri copyFileToTempFile(Context context, Uri imageUri, String mimeType)

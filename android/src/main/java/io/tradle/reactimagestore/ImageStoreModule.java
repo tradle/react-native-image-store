@@ -2,6 +2,7 @@
 package io.tradle.reactimagestore;
 
 import android.content.Context;
+import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.AsyncTask;
 
@@ -19,8 +20,6 @@ import java.io.FilenameFilter;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
-
-import io.tradle.reactimagestore.ImageStoreUtils;
 
 public class ImageStoreModule extends ReactContextBaseJavaModule implements JavaScriptModule {
 
@@ -90,7 +89,7 @@ public class ImageStoreModule extends ReactContextBaseJavaModule implements Java
   /**
    * Calculate the base64 representation for an image. The "tag" comes from iOS naming.
    *
-   * @param uri the URI of the image, file:// or content://
+   * @param options "imageTag" (uri to the tmp file) and later other options
    * @param promise to be resolved with the base64 string as the only argument
    */
   @ReactMethod
@@ -259,6 +258,14 @@ public class ImageStoreModule extends ReactContextBaseJavaModule implements Java
 
   public static Uri storeImageAtUri(Context context, Uri uri) throws IOException {
     return ImageStoreUtils.copyFileToTempFile(context, uri);
+  }
+
+  public static Uri storeImageBitmap(Context context, Bitmap image, String mimeType, int compressionQuality) throws IOException {
+    return ImageStoreUtils.createTempFileForBitmap(context, image, mimeType, compressionQuality);
+  }
+
+  public static Uri storeImageBitmap(Context context, Bitmap image, String mimeType) throws IOException {
+    return ImageStoreUtils.createTempFileForBitmap(context, image, mimeType, 100);
   }
 
   public static ImageData getImageDataForTag(Context context, String uri) throws IOException {
