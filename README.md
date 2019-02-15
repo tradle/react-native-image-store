@@ -1,6 +1,12 @@
 
 # react-native-image-store
 
+The goal: stop sending images over the React Native bridge! Instead, store them in the native-side image store and use [rn-fetch-blob](https://github.com/mvayngrib/rn-fetch-blob) to upload directly from native
+
+iOS/Android normalization for https://facebook.github.io/react-native/docs/imagestore.html  
+
+Use this on the JS/native side to store images in native cache
+
 ## Getting started
 
 `$ npm install react-native-image-store --save`
@@ -34,20 +40,6 @@
       compile project(':react-native-image-store')
   	```
 
-#### Windows
-[Read it! :D](https://github.com/ReactWindows/react-native)
-
-1. In Visual Studio add the `RNImageStore.sln` in `node_modules/react-native-image-store/windows/RNImageStore.sln` folder to their solution, reference from their app.
-2. Open up your `MainPage.cs` app
-  - Add `using Image.Store.RNImageStore;` to the usings at the top of the file
-  - Add `new RNImageStorePackage()` to the `List<IReactPackage>` returned by the `Packages` method
-
-
 ## Usage
-```javascript
-import RNImageStore from 'react-native-image-store';
 
-// TODO: What to do with the module?
-RNImageStore;
-```
-  
+iOS/Android normalization for https://facebook.github.io/react-native/docs/imagestore.html  
